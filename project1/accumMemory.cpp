@@ -1,182 +1,173 @@
 #include <iostream>
-#include <string>
-#include <fstream>
-#include <stdio.h>
 #include <cstdlib>
+#include <string>
+#include <stdio.h>
+#include <fstream>
 
-#define STACK_LEN 100
-#define TEXT_LEN 200
-#define DATA_LEN 100
+#define STACK_LEN  50
+#define TEXT_LEN  100
+#define	DATA_LEN  50
 
 using namespace std;
 
 typedef unsigned int uint32;
+typedef uint32 instr;
 typedef uint32 mem_addr;
-typedef uin32 instruction;
 
 mem_addr stackTop = 0x00300000;
 mem_addr textTop = 0x00100000;
 mem_addr dataTop = 0x00200000;
 
-mem_addr stack_seg[STACK_LEN];
-instruction text_seg[TEXT_LEN];
-mem_addr data_seg[DATA_LEN];
+mem_addr stackSeg[STACK_LEN];
+instr textSeg[TEXT_LEN];
+mem_addr dataSeg[DATA_LEN];
 
 class Mem{
-	public:
-		Mem();
-		bool load_text(mem_addr addr_in);
-		bool load_data(mem_addr addr_in, mem_addr data);
-		bool write(mem_addr addr_in, mem_addr data);
-		mem_addr * read(mem_addr addr_in);
+public:
+	Mem();
+	bool textLoad(mem_addr addr_in);
+	bool dataLoad(mem_addr addr_in, mem_addr data);
+    bool write(mem_addr addr_in, mem_addr data);
+    mem_addr * read(mem_addr addr_in);
+private:
+	int binaryDecode(mem_addr addr_in);
+	int indexDecode(mem_addr addr_in);
+	string remove_whitespace(string& str);
+	int available_memory; // This is the pointer counter for the text segment
+};
 
-	private:
-		int decode_bin(mem_addr addr_in);
-		int decode_index(mem_addr addr_in);
-		string shorten(string& str);
-		int available_memory;
-}
-
+// Inside our memory, we store our data from the accumCode.txt file that is in assembly code
 Mem::Mem(){
-	available_memory = -1;
 	int hex_1, hex_2, hex_3;
 	string line_1, line_2 = "0000000000", line_3 = "0";
 	int i = 0;
-	
-	ifstream accumFile("accumCode.txt");
-
-	if(accumFile.is_open()){
-		while(getline(accumFile,line_1)){
-			line_1 = line_1.substr(0, line_1.size()-1);
-
-			if(line_1.compare("") == 0) continue;
-			if(line_1.compare(".text") == 0){
-				i = 0;
+    available_memory = -1;
+    
+	ifstream accumCode ("accumCode.txt");
+	if (accumCode.is_open()){
+        
+		while (getline(accumCode,line_1)){
+            
+            line_1 = line_1.substr(0, line_1.size() - 1);
+            
+			if (line_1.compare("") == 0) continue;
+			if (line_1.compare(".text") == 0){
+				i = 0; 
 				continue;
 			}
-			if(line_1.compare(".data") == 0){
-				i = 1;
+			if (line_1.compare(".data") == 0){
+				i = 1; 
 				continue;
 			}
-			if(i == 0){ // If we are in the .text section then store the line into a hex
-				scanff(line_1.data(), "%x", &hex_1);
-				load_text(hex_1);
+			// If i is 0, then that implies that we are in the .text section and we store the line as a hex and store the data by sneding in an address into our textLoad function
+			if (i == 0){
+				sscanf(line_1.data(),"%x", &hex_1);
+				textLoad(hex_1);
 			}
-			else if(i == 1){ // If we are in the .data section, then store line 1 and 2 as hex
-				for(int j = 0; j < 10; j++){
-					line_2[j] = line_1[j];
-					line_3[0] = line_1[11];
+            // If i is 1, then that implies that we are in the .data section and we store the data as a hex and sending the hex into our dataLoad function
+			else if (i == 1){
+				for (int j = 0; j < 10; j++){
+                    line_2[j] = line_1[j];
+                    line_3[0] = line_1[11];
 				}
-
 				sscanf(line_2.data(), "%x", &hex_2);
-				hex_3 = atoi(line_3.c_str());
-				load_data(hex_2,hex_3);
+                hex_3 = atoi(line_3.c_str());
+				dataLoad(hex_2,hex_3);
 			}
 		}
 	}
-	accumFile.close();
- }
-
-// Removes whitespace from the front and back of the string
-string Mem::removeWhitespace(string& str){
-	size_t front = str.find_first_not_of(' ');
-	size_t back = str.find_last_not_of(' ');
-	if(front == std::string::npos) return "";
-	return str.substr(front, (back-front+1));
+    accumCode.close();
 }
 
-// Decodes a given address and returns the address shifted to the index
-int Mem::decode_index(mem_addr addr_in){
-	addr_in = addr_in << 15;
-	addr_in = addr_in >> 15;
-	return addr_in;
+// This function removes whitespace from the front and back of a given string
+string Mem::remove_whitespace(string& stringWithSpace){
+    size_t front = stringWithSpace.find_first_not_of(' ');
+    if (front == std::string::npos) return "";
+    size_t back = stringWithSpace.find_last_not_of(' ');
+    return stringWithSpace.substr(front, (back - front + 1));
 }
 
-// Decodes a given address and returns the address shifted to the bin
-int Mem:decode_bin(mem_addr addr_in){
-	addr_in = addr_in << 7;
-	addr_in = addr_in >> 27;
-	return addr_in;
-}
-
-// Will load in the memory coming from .text and checks the length of the text segment
-bool Mem::load_text(mem_addr addr_in){
-	available_memory++;
-	if(available_memory < TEXT_LEN){
-		text_seg[available_memory] = addr_in;
+// This function will load in the text from a given address by storing that address into the text segment at the pointer counter index
+bool Mem::textLoad(mem_addr addr_in){
+    available_memory++;
+    
+	if (available_memory < TEXT_LEN){
+		textSeg[available_memory] = addr_in;
 		return true;
 	}
 	else return false;
 }
 
-// Will load in the memory coming from .data and checks the length of the data segment
-bool Mem::load_data(mem_addr addr_in, mem_addr data){
-	mem_addr tempIndex = addr_in;
-	int index = (int) decode_index(tempIndex);
-
-	if(available_memory < DATA_LEN){
-		data_seg[index] = data;
+// This function will load the .data data in and stores the data into the data segment after checking if there is available memory in the data length
+bool Mem::dataLoad(mem_addr addr_in, mem_addr data){
+	int index = (int) indexDecode(addr_in);
+	if (available_memory < DATA_LEN){
+		dataSeg[index] = data;
 		return true;
 	}
 	else return false;
 }
 
-// Takes in a memory address and will read it, check the length and return it to it's corresponding segment
+// This function decodes the given address into the memory index by shifting all the bits left 16 and right 15
+int Mem::indexDecode(mem_addr addr_in){
+    addr_in = addr_in << 15;
+    addr_in = addr_in >> 15;
+    return addr_in;
+}
+
+// This function decodes the given address into binary by shifting the bits left 7 and right 27
+int Mem::binaryDecode(mem_addr addr_in){
+    addr_in = addr_in << 7;
+    addr_in = addr_in >> 27;
+    return addr_in;
+}
+
+// This read method will first decode the given address and determine the length of given segment and returns the data at that address. Used for text, data, and stack segments.
 mem_addr * Mem::read(mem_addr addr_in){
 
-	mem_addr tempBin = addr_in;
-	mem_addr tempindex = addr_in;
-	int index = (int) decode_index(tempIndex);
-
-	switch(decode_bin(tempBin)){
-		// Case 1 will handle if the memory address is .text
-		case 1:{
-			if(index < TEXT_LEN) return &text_seg[index];
-			break;
-		       }
-		// Case 2 will handle if the memory address is .data
-		case 2:{
-			if(available_memory < DATA_LEN) return &data_seg[index];
-		      	break;
-		       }
-		// Case 3 will handle if the memory address is stack
-		case 3:{
-			if(available_memory < STACK_LEN) return &stack_seg[index];
-			break;
-		       }
-		default:{
-			return &stackTop;
-			break;
-			 }
-	return &stackTop;
-
-	}
+    int index = (int) indexDecode(addr_in);
+    
+switch(binaryDecode(addr_in)){
+    case 1:
+        if (index < TEXT_LEN) return &textSeg[index];
+        break;
+    case 2:
+        if (available_memory < DATA_LEN) return &dataSeg[index];
+        break;
+    case 3:
+        if (available_memory < STACK_LEN) return &stackSeg[index];
+        break;
+    default:
+        return &stackTop;
+        break;
+    }
+    return &stackTop;
 }
 
-// Takes in an address and data and will write the data into that address
+// This Write method uses case 3 to identify if we are writing to the stack, it will first decode the given address in binary and returns true when the data is stored in the stack after making sure there is enough space in the stack
 bool Mem::write(mem_addr addr_in, mem_addr data){
-	mem_addr tempBin = addr_in;
-	mem_addr tempIndex = addr_in;
+    
+switch(binaryDecode(addr_in)){
+	case 1:
+	case 2:
+        return false;
+		break;
+	case 3:
+		{
+			int index = (int) indexDecode(addr_in);
 
-	switch(decode_bin(tempBin)){
-		// Cases 1 and 2 handle if the user has no writing permissions
-		case 1:
-		case 2:
-			return false;
-			break;
-		// Case 3 Will actually write to the stack segment
-		case 3:{
-			int index = (int) decode_index(tempIndex);
-			if(available_memory < STACK_LEN){
-				stack_seg[index] = data;
+			if (available_memory < STACK_LEN){
+				stackSeg[index] = data;
 				return true;
 			}
 			else return false;
-			break;
-		       }
-		default: return false;
-			 break;
-
-		return false;
+            break;
+		}
+		
+	default:
+        return false;
+		break;
 	}
+    
+	return false;
 }

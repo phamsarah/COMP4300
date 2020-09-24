@@ -3,7 +3,7 @@ case $1 in
 		g++ stackSimulator.cpp -std=c++11 -o stackSimulatorOutput.out
 		g++ -c stackMemory.cpp -std=c++11 -o stackMemoryOutput.out
 		;;
-	run)
+	execute)
 		./stackSimulatorOutput.out
 		;;
 	wipe)

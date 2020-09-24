@@ -1,13 +1,13 @@
 case $1 in
 	compile)
-		g++ accumSimulator.cpp -std=c++11 -o accumSimulator.out
-		g++ -c accumMemory.cpp -std=c++11 -o accumMemory.out
+		g++ accumSimulator.cpp -std=c++11 -o accumSimulatorOutput.out
+		g++ -c accumMemory.cpp -std=c++11 -o accumMemoryOutput.out
 		;;
-	run)
-		./accumSimulator.out
+	execute)
+		./accumSimulatorOutput.out
 		;;
 	wipe)
-		rm accumSimulator.out accumMemory.out
+		rm accumSimulatorOutput.out accumMemoryOutput.out
 		;;
 	*)
 		echo command invalid or missing
