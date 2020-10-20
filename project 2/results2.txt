@@ -1,0 +1,21 @@
+For a 7 letter palindrome
+
+Total Instructions -> 48
+Total Cycles       -> 246
+Speed up	   -> 1.56
+
+For a 11 letter non-palindrome
+
+Total Instructions -> 64
+Total Cycles       -> 330
+Speed up	   -> 1.55
+
+For a 35 letter palindrome
+Total Instructions -> 160
+Total Cycles       -> 834
+Speed up	   -> 1.53
+
+For a blank word
+Total Instructions -> 20
+Total Cycles       -> 99
+Speed up           -> 1.61
